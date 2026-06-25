@@ -1,14 +1,14 @@
+{{- /* PrometheusRule — eggcatcher alerts */ -}}
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
   name: eggcatcher-alerts
   namespace: monitoring
   labels:
-    release: prometheus   # must match kube-prometheus-stack release name
+    release: prometheus
     app.kubernetes.io/managed-by: argocd
 spec:
   groups:
-    # ── Infrastructure alerts ──────────────────────────────────────────────────
     - name: eggcatcher.infrastructure
       rules:
         - alert: EggCatcherPodCrashLooping
@@ -23,7 +23,7 @@ spec:
             namespace: eggcatcher
           annotations:
             summary: "Flask pod is crash looping"
-            description: "Pod {{ $labels.pod }} in namespace eggcatcher has restarted more than once in the last 5 minutes."
+            description: "A pod in namespace eggcatcher has restarted more than once in the last 5 minutes."
 
         - alert: EggCatcherHighCPU
           expr: |
@@ -37,7 +37,7 @@ spec:
             namespace: eggcatcher
           annotations:
             summary: "Flask pod high CPU usage"
-            description: "Pod {{ $labels.pod }} CPU usage is above 400m for more than 5 minutes."
+            description: "A Flask pod CPU usage is above 400m for more than 5 minutes."
 
         - alert: EggCatcherHighMemory
           expr: |
@@ -51,7 +51,7 @@ spec:
             namespace: eggcatcher
           annotations:
             summary: "Flask pod high memory usage"
-            description: "Pod {{ $labels.pod }} memory usage is above 220Mi for more than 5 minutes."
+            description: "A Flask pod memory usage is above 220Mi for more than 5 minutes."
 
         - alert: PostgreSQLDown
           expr: |
@@ -65,7 +65,7 @@ spec:
             namespace: eggcatcher
           annotations:
             summary: "PostgreSQL StatefulSet pod is not ready"
-            description: "PostgreSQL pod {{ $labels.pod }} has been not ready for more than 1 minute."
+            description: "A PostgreSQL pod has been not ready for more than 1 minute."
 
         - alert: RedisDown
           expr: |
@@ -79,7 +79,7 @@ spec:
             namespace: eggcatcher
           annotations:
             summary: "Redis StatefulSet pod is not ready"
-            description: "Redis pod {{ $labels.pod }} has been not ready for more than 1 minute."
+            description: "A Redis pod has been not ready for more than 1 minute."
 
         - alert: EggCatcherPodNotReady
           expr: |
@@ -93,9 +93,8 @@ spec:
             namespace: eggcatcher
           annotations:
             summary: "EggCatcher deployment has unavailable replicas"
-            description: "Deployment eggcatcher has {{ $value }} unavailable replicas for more than 2 minutes."
+            description: "Deployment eggcatcher has unavailable replicas for more than 2 minutes."
 
-    # ── Game-specific alerts ───────────────────────────────────────────────────
     - name: eggcatcher.game
       rules:
         - alert: HighActiveSessions
@@ -106,7 +105,7 @@ spec:
             namespace: eggcatcher
           annotations:
             summary: "High number of active game sessions"
-            description: "There are {{ $value }} active game sessions — Redis may be under pressure."
+            description: "There are more than 50 active game sessions — Redis may be under pressure."
 
         - alert: NoScoresSubmitted
           expr: |
