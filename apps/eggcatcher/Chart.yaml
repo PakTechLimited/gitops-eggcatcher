@@ -1,0 +1,14 @@
+apiVersion: v2
+name: eggcatcher
+description: PakTech Egg Catcher — Flask + PostgreSQL StatefulSet + Redis StatefulSet
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - flask
+  - postgresql
+  - redis
+  - statefulset
+maintainers:
+  - name: PakTechLimited
+    url: https://github.com/PakTechLimited

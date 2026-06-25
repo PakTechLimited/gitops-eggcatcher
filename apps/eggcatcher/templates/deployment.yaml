@@ -1,0 +1,123 @@
+# ── Flask App Service ─────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.app.name }}
+  namespace: {{ .Values.app.namespace }}
+  labels:
+    app: {{ .Values.app.name }}
+    app.kubernetes.io/managed-by: argocd
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ .Values.app.name }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: {{ .Values.app.port }}
+---
+# ── Flask App Deployment ──────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app.name }}
+  namespace: {{ .Values.app.namespace }}
+  labels:
+    app: {{ .Values.app.name }}
+    app.kubernetes.io/managed-by: argocd
+  annotations:
+    # CI updates this tag on every push — Argo CD detects the diff and syncs
+    deployment.kubernetes.io/revision: "1"
+spec:
+  replicas: {{ .Values.app.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0   # zero-downtime rolling update
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.name }}
+    spec:
+      # Wait for PostgreSQL to be ready before starting Flask
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for PostgreSQL..."
+              until nc -z {{ .Values.postgres.name }} {{ .Values.postgres.port }}; do
+                echo "PostgreSQL not ready — sleeping 2s"
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+        - name: wait-for-redis
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Redis..."
+              until nc -z {{ .Values.redis.name }} {{ .Values.redis.port }}; do
+                echo "Redis not ready — sleeping 2s"
+                sleep 2
+              done
+              echo "Redis is ready!"
+      containers:
+        - name: {{ .Values.app.name }}
+          image: {{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}
+          imagePullPolicy: {{ .Values.app.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.app.port }}
+              name: http
+          env:
+            - name: ENVIRONMENT
+              value: {{ .Values.app.env.ENVIRONMENT | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.app.env.LOG_LEVEL | quote }}
+            - name: GAME_SESSION_TTL_SECONDS
+              value: {{ .Values.app.env.GAME_SESSION_TTL_SECONDS | quote }}
+            - name: LEADERBOARD_TOP_N
+              value: {{ .Values.app.env.LEADERBOARD_TOP_N | quote }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: eggcatcher-secrets
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: eggcatcher-secrets
+                  key: REDIS_URL
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: eggcatcher-secrets
+                  key: SECRET_KEY
+          resources:
+            requests:
+              cpu: {{ .Values.app.resources.requests.cpu }}
+              memory: {{ .Values.app.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.app.resources.limits.cpu }}
+              memory: {{ .Values.app.resources.limits.memory }}
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: {{ .Values.app.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: {{ .Values.app.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3

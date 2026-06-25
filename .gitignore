@@ -1,0 +1,12 @@
+# Helm
+charts/
+*.tgz
+
+# Secrets — never commit
+*secret*override*
+values.secrets.yaml
+secrets.yaml
+
+# OS
+.DS_Store
+Thumbs.db

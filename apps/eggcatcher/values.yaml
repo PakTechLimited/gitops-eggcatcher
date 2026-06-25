@@ -1,0 +1,70 @@
+# ── App ───────────────────────────────────────────────────────────────────────
+app:
+  name: eggcatcher
+  namespace: eggcatcher
+  image:
+    repository: acreggcatcherdev.azurecr.io/eggcatcher
+    tag: "latest"           # CI updates this on every push
+    pullPolicy: Always
+  replicas: 2
+  port: 8080
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  env:
+    ENVIRONMENT: production
+    LOG_LEVEL: INFO
+    GAME_SESSION_TTL_SECONDS: "3600"
+    LEADERBOARD_TOP_N: "10"
+
+# ── PostgreSQL StatefulSet ────────────────────────────────────────────────────
+postgres:
+  image: postgres:16-alpine
+  name: postgres
+  port: 5432
+  database: eggcatcher_db
+  username: eggcatcher
+  # Password injected from Kubernetes Secret — never hardcoded here
+  storage:
+    storageClass: managed-csi   # Azure Disk (default AKS storage class)
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# ── Redis StatefulSet ─────────────────────────────────────────────────────────
+redis:
+  image: redis:7-alpine
+  name: redis
+  port: 6379
+  storage:
+    storageClass: managed-csi
+    size: 1Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# ── Ingress ───────────────────────────────────────────────────────────────────
+ingress:
+  enabled: true
+  className: nginx
+  host: eggscore.paktechlimited.com
+  tls:
+    enabled: true
+    issuer: letsencrypt-prod   # switch to letsencrypt-staging for testing
+
+# ── DB Migration Job ──────────────────────────────────────────────────────────
+migration:
+  enabled: true
