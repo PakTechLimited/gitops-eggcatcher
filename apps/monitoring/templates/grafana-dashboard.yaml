@@ -1,0 +1,130 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/managed-by: argocd
+data:
+  eggcatcher.json: |
+    {
+      "title": "PakTech Egg Catcher",
+      "uid": "eggcatcher-main",
+      "timezone": "browser",
+      "refresh": "30s",
+      "panels": [
+        {
+          "id": 1,
+          "title": "Active Game Sessions",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+          "targets": [{
+            "expr": "eggcatcher_active_sessions",
+            "legendFormat": "Active Sessions"
+          }],
+          "options": {"colorMode": "background", "graphMode": "area"},
+          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"},
+            "thresholds": {"steps": [
+              {"color": "green", "value": 0},
+              {"color": "yellow", "value": 20},
+              {"color": "red", "value": 50}
+            ]}}}
+        },
+        {
+          "id": 2,
+          "title": "Scores Submitted (rate/min)",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+          "targets": [{
+            "expr": "rate(eggcatcher_scores_submitted_total[5m]) * 60",
+            "legendFormat": "Scores/min"
+          }],
+          "options": {"colorMode": "background", "graphMode": "area"},
+          "fieldConfig": {"defaults": {"color": {"fixedColor": "blue", "mode": "fixed"}}}
+        },
+        {
+          "id": 3,
+          "title": "Session Starts (rate/min)",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+          "targets": [{
+            "expr": "rate(eggcatcher_session_starts_total[5m]) * 60",
+            "legendFormat": "Sessions/min"
+          }],
+          "options": {"colorMode": "background", "graphMode": "area"},
+          "fieldConfig": {"defaults": {"color": {"fixedColor": "green", "mode": "fixed"}}}
+        },
+        {
+          "id": 4,
+          "title": "Leaderboard Hits (rate/min)",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+          "targets": [{
+            "expr": "rate(eggcatcher_leaderboard_hits_total[5m]) * 60",
+            "legendFormat": "Hits/min"
+          }],
+          "options": {"colorMode": "background", "graphMode": "area"},
+          "fieldConfig": {"defaults": {"color": {"fixedColor": "purple", "mode": "fixed"}}}
+        },
+        {
+          "id": 5,
+          "title": "Score Distribution",
+          "type": "histogram",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+          "targets": [{
+            "expr": "increase(eggcatcher_score_distribution_bucket[1h])",
+            "legendFormat": "{{le}}"
+          }]
+        },
+        {
+          "id": 6,
+          "title": "HTTP Request Rate",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+          "targets": [{
+            "expr": "rate(flask_http_request_total[5m])",
+            "legendFormat": "{{method}} {{path}} {{status}}"
+          }]
+        },
+        {
+          "id": 7,
+          "title": "Flask Pod CPU Usage",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+          "targets": [{
+            "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"eggcatcher\",container=\"eggcatcher\"}[5m])) by (pod)",
+            "legendFormat": "{{pod}}"
+          }]
+        },
+        {
+          "id": 8,
+          "title": "Flask Pod Memory Usage",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+          "targets": [{
+            "expr": "sum(container_memory_working_set_bytes{namespace=\"eggcatcher\",container=\"eggcatcher\"}) by (pod)",
+            "legendFormat": "{{pod}}"
+          }]
+        },
+        {
+          "id": 9,
+          "title": "Pod Restarts",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+          "targets": [{
+            "expr": "increase(kube_pod_container_status_restarts_total{namespace=\"eggcatcher\"}[1h])",
+            "legendFormat": "{{pod}}/{{container}}"
+          }]
+        },
+        {
+          "id": 10,
+          "title": "NGINX Ingress Request Rate",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+          "targets": [{
+            "expr": "rate(nginx_ingress_controller_requests[5m])",
+            "legendFormat": "{{status}} {{ingress}}"
+          }]
+        }
+      ]
+    }

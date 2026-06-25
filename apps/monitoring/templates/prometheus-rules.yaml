@@ -1,0 +1,120 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: eggcatcher-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus   # must match kube-prometheus-stack release name
+    app.kubernetes.io/managed-by: argocd
+spec:
+  groups:
+    # ── Infrastructure alerts ──────────────────────────────────────────────────
+    - name: eggcatcher.infrastructure
+      rules:
+        - alert: EggCatcherPodCrashLooping
+          expr: |
+            rate(kube_pod_container_status_restarts_total{
+              namespace="eggcatcher",
+              container="eggcatcher"
+            }[5m]) > 0
+          for: 1m
+          labels:
+            severity: critical
+            namespace: eggcatcher
+          annotations:
+            summary: "Flask pod is crash looping"
+            description: "Pod {{ $labels.pod }} in namespace eggcatcher has restarted more than once in the last 5 minutes."
+
+        - alert: EggCatcherHighCPU
+          expr: |
+            sum(rate(container_cpu_usage_seconds_total{
+              namespace="eggcatcher",
+              container="eggcatcher"
+            }[5m])) by (pod) > 0.4
+          for: 5m
+          labels:
+            severity: warning
+            namespace: eggcatcher
+          annotations:
+            summary: "Flask pod high CPU usage"
+            description: "Pod {{ $labels.pod }} CPU usage is above 400m for more than 5 minutes."
+
+        - alert: EggCatcherHighMemory
+          expr: |
+            sum(container_memory_working_set_bytes{
+              namespace="eggcatcher",
+              container="eggcatcher"
+            }) by (pod) > 220000000
+          for: 5m
+          labels:
+            severity: warning
+            namespace: eggcatcher
+          annotations:
+            summary: "Flask pod high memory usage"
+            description: "Pod {{ $labels.pod }} memory usage is above 220Mi for more than 5 minutes."
+
+        - alert: PostgreSQLDown
+          expr: |
+            kube_pod_status_ready{
+              namespace="eggcatcher",
+              pod=~"postgres-.*"
+            } == 0
+          for: 1m
+          labels:
+            severity: critical
+            namespace: eggcatcher
+          annotations:
+            summary: "PostgreSQL StatefulSet pod is not ready"
+            description: "PostgreSQL pod {{ $labels.pod }} has been not ready for more than 1 minute."
+
+        - alert: RedisDown
+          expr: |
+            kube_pod_status_ready{
+              namespace="eggcatcher",
+              pod=~"redis-.*"
+            } == 0
+          for: 1m
+          labels:
+            severity: critical
+            namespace: eggcatcher
+          annotations:
+            summary: "Redis StatefulSet pod is not ready"
+            description: "Redis pod {{ $labels.pod }} has been not ready for more than 1 minute."
+
+        - alert: EggCatcherPodNotReady
+          expr: |
+            kube_deployment_status_replicas_unavailable{
+              namespace="eggcatcher",
+              deployment="eggcatcher"
+            } > 0
+          for: 2m
+          labels:
+            severity: warning
+            namespace: eggcatcher
+          annotations:
+            summary: "EggCatcher deployment has unavailable replicas"
+            description: "Deployment eggcatcher has {{ $value }} unavailable replicas for more than 2 minutes."
+
+    # ── Game-specific alerts ───────────────────────────────────────────────────
+    - name: eggcatcher.game
+      rules:
+        - alert: HighActiveSessions
+          expr: eggcatcher_active_sessions > 50
+          for: 5m
+          labels:
+            severity: warning
+            namespace: eggcatcher
+          annotations:
+            summary: "High number of active game sessions"
+            description: "There are {{ $value }} active game sessions — Redis may be under pressure."
+
+        - alert: NoScoresSubmitted
+          expr: |
+            increase(eggcatcher_scores_submitted_total[1h]) == 0
+          for: 2h
+          labels:
+            severity: warning
+            namespace: eggcatcher
+          annotations:
+            summary: "No scores submitted in the last hour"
+            description: "No scores have been submitted to the leaderboard in the past hour — the game submission flow may be broken."

@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/managed-by: argocd
+data:
+  # ── Slack service ────────────────────────────────────────────────────────────
+  service.slack: |
+    token: $slack-token
+
+  # ── Templates ────────────────────────────────────────────────────────────────
+  template.app-deployed: |
+    slack:
+      attachments: |
+        [{
+          "color": "#18be52",
+          "title": "✅ Deployment Succeeded",
+          "title_link": "{{.app.spec.source.repoURL}}",
+          "fields": [
+            {"title": "App", "value": "{{.app.metadata.name}}", "short": true},
+            {"title": "Namespace", "value": "{{.app.spec.destination.namespace}}", "short": true},
+            {"title": "Revision", "value": "{{.app.status.sync.revision | truncate 7 \"\"}}", "short": true},
+            {"title": "URL", "value": "https://eggscore.paktechlimited.com", "short": true}
+          ],
+          "footer": "PakTech EggCatcher · Argo CD"
+        }]
+
+  template.app-sync-failed: |
+    slack:
+      attachments: |
+        [{
+          "color": "#E96D76",
+          "title": "🔴 Sync Failed",
+          "title_link": "{{.app.spec.source.repoURL}}",
+          "fields": [
+            {"title": "App", "value": "{{.app.metadata.name}}", "short": true},
+            {"title": "Namespace", "value": "{{.app.spec.destination.namespace}}", "short": true},
+            {"title": "Error", "value": "{{.app.status.conditions | map attribute \"message\" | join \", \"}}", "short": false}
+          ],
+          "footer": "PakTech EggCatcher · Argo CD"
+        }]
+
+  template.app-health-degraded: |
+    slack:
+      attachments: |
+        [{
+          "color": "#f4c030",
+          "title": "⚠️ App Health Degraded",
+          "title_link": "{{.app.spec.source.repoURL}}",
+          "fields": [
+            {"title": "App", "value": "{{.app.metadata.name}}", "short": true},
+            {"title": "Health", "value": "{{.app.status.health.status}}", "short": true},
+            {"title": "Message", "value": "{{.app.status.health.message}}", "short": false}
+          ],
+          "footer": "PakTech EggCatcher · Argo CD"
+        }]
+
+  # ── Triggers ──────────────────────────────────────────────────────────────────
+  trigger.on-deployed: |
+    - description: App synced and healthy
+      send: [app-deployed]
+      when: app.status.operationState.phase in ['Succeeded'] and app.health.status == 'Healthy'
+
+  trigger.on-sync-failed: |
+    - description: App sync failed
+      send: [app-sync-failed]
+      when: app.status.operationState.phase in ['Error', 'Failed']
+
+  trigger.on-health-degraded: |
+    - description: App health degraded
+      send: [app-health-degraded]
+      when: app.status.health.status == 'Degraded'
+
+  # ── Default subscriptions ─────────────────────────────────────────────────────
+  defaultTriggers: |
+    - on-deployed
+    - on-sync-failed
+    - on-health-degraded
