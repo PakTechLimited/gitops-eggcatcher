@@ -4,7 +4,7 @@ app:
   namespace: eggcatcher
   image:
     repository: acreggcatcherdev.azurecr.io/eggcatcher
-    tag: "8-14eb758"
+    tag: "9-da547ea"
     pullPolicy: Always
   replicas: 2
   port: 8080
