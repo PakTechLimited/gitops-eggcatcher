@@ -4,7 +4,7 @@ app:
   namespace: eggcatcher
   image:
     repository: acreggcatcherdev.azurecr.io/eggcatcher
-    tag: "latest"           # CI updates this on every push
+    tag: "2-5f6e4d8"
     pullPolicy: Always
   replicas: 2
   port: 8080
