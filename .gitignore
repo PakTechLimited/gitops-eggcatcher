@@ -10,3 +10,5 @@ secrets.yaml
 # OS
 .DS_Store
 Thumbs.db
+
+# Allow monitoring helm dependencies
