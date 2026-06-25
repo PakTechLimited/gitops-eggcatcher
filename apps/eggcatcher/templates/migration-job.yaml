@@ -9,7 +9,6 @@ metadata:
     app.kubernetes.io/managed-by: argocd
   annotations:
     # Argo CD hook — runs before the main sync, ensures DB is ready before Flask pods start
-    argocd.argoproj.io/hook: PreSync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   ttlSecondsAfterFinished: 300   # auto-clean job pod after 5 minutes
