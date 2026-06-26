@@ -3,7 +3,7 @@
 # Run from gitops-eggcatcher/ directory
 set -euo pipefail
 
-SLACK_WEBHOOK="https://hooks.slack.com/services/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"
+SLACK_WEBHOOK="${SLACK_WEBHOOK_URL:-https://hooks.slack.com/services/YOUR_WEBHOOK_HERE}"
 
 echo "── Step 1: Create monitoring namespace..."
 kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
@@ -30,7 +30,7 @@ kubectl create secret generic alertmanager-slack \
   --dry-run=client -o yaml | kubectl apply -f -
 
 echo "── Step 6: Apply Argo CD notifications ConfigMap..."
-kubectl apply -f apps/monitoring/templates/argocd-notifications.yaml
+kubectl apply -f apps/monitoring/raw/argocd-notifications.yaml
 
 echo "── Step 7: Apply monitoring Argo CD Application..."
 kubectl apply -f apps/monitoring/argocd-app.yaml
@@ -41,5 +41,5 @@ echo "   Watch progress:"
 echo "   kubectl get pods -n monitoring --watch"
 echo ""
 echo "── Access Grafana (port-forward):"
-echo "   kubectl port-forward svc/prometheus-grafana -n monitoring 3000:80"
+echo "   kubectl port-forward svc/monitoring-grafana -n monitoring 3000:80"
 echo "   Open: http://localhost:3000 (admin / PakTechGrafana2026!)"
